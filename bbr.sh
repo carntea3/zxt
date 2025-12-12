@@ -1,174 +1,154 @@
-#!/bin/bash
-# Edition : Stable Edition V3.0
-# Author  : SANZ PROJECT
-# (C) Copyright 2019
-# =========================================
+#!/usr/bin/env bash
+#
+# Auto install latest kernel for TCP BBR
+#
+# System Required:  Debian8+, Ubuntu16+
+#
+# Copyright (C) 2016-2021 Teddysun <i@teddysun.com>
+#
+# URL: https://teddysun.com/489.html
+#
 
-red='\e[1;31m'
-green='\e[0;32m'
-purple='\e[0;35m'
-orange='\e[0;33m'
-NC='\e[0m'
-clear
-#if [[ -e /usr/local/sbin/bbr ]]; then
-     echo ""
-#     echo -e "${green}TCP BBR Already Install${NC}"
-     echo ""
-#	 read -n1 -r -p "Press any key to continue..."
-#	 menu
-#else
-
-echo -e "${green}Installing bbr${NC}"
-sleep 5
-clear
-
-touch /usr/local/sbin/bbr
-
-Add_To_New_Line(){
-	if [ "$(tail -n1 $1 | wc -l)" == "0"  ];then
-		echo "" >> "$1"
-	fi
-	echo "$2" >> "$1"
+print_color() {
+    local color_code="$1"
+    local message="$2"
+    printf "\033[1;${color_code}m%b\033[0m\n" "$message"
 }
 
-Check_And_Add_Line(){
-	if [ -z "$(cat "$1" | grep "$2")" ];then
-		Add_To_New_Line "$1" "$2"
-	fi
+_info() {
+    print_color "32" "[Info] $1"
 }
 
-Install_BBR(){
-echo -e "\e[32;1m================================\e[0m"
-echo -e "\e[32;1mInstalling TCP BBR...\e[0m"
-if [ -n "$(lsmod | grep bbr)" ];then
-echo -e "\e[0;32mSuccesfully Installed TCP BBR.\e[0m"
-echo -e "\e[32;1m================================\e[0m"
-return 1
-fi
-echo -e "\e[0;32mStarting To Install BBR...\e[0m"
-modprobe tcp_bbr
-Add_To_New_Line "/etc/modules-load.d/modules.conf" "tcp_bbr"
-Add_To_New_Line "/etc/sysctl.conf" "net.core.default_qdisc = fq"
-Add_To_New_Line "/etc/sysctl.conf" "net.ipv4.tcp_congestion_control = bbr"
-sysctl -p
-if [ -n "$(sysctl net.ipv4.tcp_available_congestion_control | grep bbr)" ] && [ -n "$(sysctl net.ipv4.tcp_congestion_control | grep bbr)" ] && [ -n "$(lsmod | grep "tcp_bbr")" ];then
-	echo -e "\e[0;32mTCP BBR Install Success!\e[0m"
-else
-	echo -e "\e[1;31mFailed To Install BBR!\e[0m"
-fi
-echo -e "\e[32;1m================================\e[0m"
+_warn() {
+    print_color "33" "[Warning] $1"
 }
 
-Optimize_Parameters(){
-echo -e "\e[32;1m================================\e[0m"
-echo -e "\e[32;1mOptimize Parameters...\e[0m"
-modprobe ip_conntrack
-Check_And_Add_Line "/etc/security/limits.conf" "* soft nofile 65535"
-Check_And_Add_Line "/etc/security/limits.conf" "* hard nofile 65535"
-Check_And_Add_Line "/etc/security/limits.conf" "root soft nofile 51200"
-Check_And_Add_Line "/etc/security/limits.conf" "root hard nofile 51200"
-################################
-##############################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.route_localnet=1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.ip_forward = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.forwarding = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.forwarding = 1"
-################################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.all.forwarding = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.default.forwarding = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.lo.forwarding = 1"
-################################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.all.disable_ipv6 = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.default.disable_ipv6 = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.lo.disable_ipv6 = 0"
-################################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.all.accept_ra = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.default.accept_ra = 2"
-################################
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.netdev_budget = 50000"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.netdev_budget_usecs = 5000"
-Check_And_Add_Line "/etc/sysctl.conf" "#fs.file-max = 51200"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.rmem_max = 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.wmem_max = 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.rmem_default = 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.wmem_default = 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.optmem_max = 65536"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.somaxconn = 10000"
-################################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.icmp_echo_ignore_all = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.icmp_echo_ignore_broadcasts = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.icmp_ignore_bogus_error_responses = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.accept_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.accept_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.secure_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.secure_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.send_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.send_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.rp_filter = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.rp_filter = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_keepalive_time = 1200"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_keepalive_intvl = 15"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_keepalive_probes = 5"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_synack_retries = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_syncookies = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_rfc1337 = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_timestamps = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_tw_reuse = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_fin_timeout = 15"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.ip_local_port_range = 1024 65535"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_max_tw_buckets = 2000000"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_fastopen = 3"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_rmem = 4096 87380 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_wmem = 4096 65536 67108864"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.udp_rmem_min = 8192"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.udp_wmem_min = 8192"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_mtu_probing = 0"
-##############################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.arp_ignore = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.arp_ignore = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.all.arp_announce = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.conf.default.arp_announce = 2"
-##############################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_autocorking = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_slow_start_after_idle = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_max_syn_backlog = 30000"
-Check_And_Add_Line "/etc/sysctl.conf" "net.core.default_qdisc = fq"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_congestion_control = bbr"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_notsent_lowat = 16384"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_no_metrics_save = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_ecn = 2"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_ecn_fallback = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_frto = 0"
-##############################
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.all.accept_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.conf.default.accept_redirects = 0"
-Check_And_Add_Line "/etc/sysctl.conf" "vm.swappiness = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "vm.overcommit_memory = 1"
-Check_And_Add_Line "/etc/sysctl.conf" "#vm.nr_hugepages=1280"
-Check_And_Add_Line "/etc/sysctl.conf" "kernel.pid_max=64000"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.neigh.default.gc_thresh3=8192"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.neigh.default.gc_thresh2=4096"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.neigh.default.gc_thresh1=2048"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.neigh.default.gc_thresh3=8192"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.neigh.default.gc_thresh2=4096"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv6.neigh.default.gc_thresh1=2048"
-Check_And_Add_Line "/etc/sysctl.conf" "net.ipv4.tcp_max_syn_backlog = 262144"
-Check_And_Add_Line "/etc/sysctl.conf" "net.netfilter.nf_conntrack_max = 262144"
-Check_And_Add_Line "/etc/sysctl.conf" "net.nf_conntrack_max = 262144"
-
-##############################
-##############################
-Check_And_Add_Line "/etc/systemd/system.conf" "DefaultTimeoutStopSec=30s"
-Check_And_Add_Line "/etc/systemd/system.conf" "DefaultLimitCORE=infinity"
-Check_And_Add_Line "/etc/systemd/system.conf" "DefaultLimitNOFILE=65535"
-echo -e "\e[0;32mSuccesfully Optimize Parameters.\e[0m"
-echo -e "\e[32;1m================================\e[0m"
+_error() {
+    print_color "31" "[Error] $1"
+    exit 1
 }
-Install_BBR
-Optimize_Parameters
-rm -f /root/bbr.sh >/dev/null 2>&1
-echo -e '\e[32;1m============================================================\e[0m'
-echo -e '\e[0;32m                  Installation Success!                     \e[0m'
-echo -e '\e[32;1m============================================================\e[0m'
-sleep 3
-#fi
+
+_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+_os() {
+    [ -f "/etc/os-release" ] && source /etc/os-release && echo "${ID}"
+}
+
+_os_full() {
+    [ -f /etc/os-release ] && awk -F'[= "]' '/PRETTY_NAME/{print $3,$4,$5}' /etc/os-release
+}
+
+_os_ver() {
+    local main_ver="$(echo $(_os_full) | grep -oE "[0-9.]+")"
+    echo "${main_ver%%.*}"
+}
+
+_error_detect() {
+    _info "$1"
+    eval "$1"
+    [ $? -ne 0 ] && _error "Execution command ($1) failed, please check it and try again."
+}
+
+_is_64bit() {
+    [ "$(getconf LONG_BIT)" = "64" ]
+}
+
+_version_ge() {
+    test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" == "$1"
+}
+
+get_latest_version() {
+    latest_version=($(wget -qO- https://kernel.ubuntu.com/~kernel-ppa/mainline/ | awk -F'\"v' '/v[4-9]./{print $2}' | cut -d/ -f1 | grep -v - | sort -V))
+    [ ${#latest_version[@]} -eq 0 ] && _error "Get latest kernel version failed."
+    kernel_arr=()
+    for i in ${latest_version[@]}; do
+        _version_ge $i 5.15 && kernel_arr+=($i)
+    done
+    kernel=${kernel_arr[-1]}
+    if _is_64bit; then
+        deb_name=$(wget -qO- https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
+        deb_kernel_url="https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/${deb_name}"
+        deb_kernel_name="linux-image-${kernel}-amd64.deb"
+        modules_deb_name=$(wget -qO- https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/ | grep "linux-modules" | grep "generic" | awk -F'\">' '/amd64.deb/{print $2}' | cut -d'<' -f1 | head -1)
+        deb_kernel_modules_url="https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/${modules_deb_name}"
+        deb_kernel_modules_name="linux-modules-${kernel}-amd64.deb"
+    else
+        deb_name=$(wget -qO- https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/ | grep "linux-image" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
+        deb_kernel_url="https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/${deb_name}"
+        deb_kernel_name="linux-image-${kernel}-i386.deb"
+        modules_deb_name=$(wget -qO- https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/ | grep "linux-modules" | grep "generic" | awk -F'\">' '/i386.deb/{print $2}' | cut -d'<' -f1 | head -1)
+        deb_kernel_modules_url="https://kernel.ubuntu.com/~kernel-ppa/mainline/v${kernel}/${modules_deb_name}"
+        deb_kernel_modules_name="linux-modules-${kernel}-i386.deb"
+    fi
+    [ -z "${deb_name}" ] && _error "Getting Linux kernel binary package name failed, maybe kernel build failed. Please choose other one and try again."
+}
+
+check_bbr_status() {
+    [ "$(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}')" == "bbr" ]
+}
+
+check_kernel_version() {
+    _version_ge "$(uname -r | cut -d- -f1)" 4.9
+}
+
+check_os() {
+    local os=$(_os)
+    [ -z "$os" ] && _error "Not supported OS"
+    case "$os" in
+        ubuntu) [ "$(_os_ver)" -lt 16 ] && _error "Not supported OS, please change to Ubuntu 16+ and try again." ;;
+        debian) [ "$(_os_ver)" -lt 8 ] && _error "Not supported OS, please change to Debian 8+ and try again." ;;
+        *) _error "Not supported OS" ;;
+    esac
+}
+
+sysctl_config() {
+    sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+    sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+    echo "net.core.default_qdisc = fq" >> /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.conf
+    sysctl -p >/dev/null 2>&1
+}
+
+install_kernel() {
+    case "$(_os)" in
+        ubuntu|debian)
+            _info "Getting latest kernel version..."
+            get_latest_version
+            [ -n "${modules_deb_name}" ] && _error_detect "wget -c -t3 -T60 -O ${deb_kernel_modules_name} ${deb_kernel_modules_url}"
+            _error_detect "wget -c -t3 -T60 -O ${deb_kernel_name} ${deb_kernel_url}"
+            _error_detect "dpkg -i ${deb_kernel_modules_name} ${deb_kernel_name}"
+            rm -f ${deb_kernel_modules_name} ${deb_kernel_name}
+            _error_detect "/usr/sbin/update-grub"
+            ;;
+    esac
+}
+
+
+install_bbr() {
+    check_bbr_status && _info "TCP BBR has already been enabled. nothing to do..."
+    check_kernel_version && _info "The kernel version is greater than 4.9, directly setting TCP BBR..." && sysctl_config && _info "Setting TCP BBR completed..."
+    check_os
+    install_kernel
+    sysctl_config
+}
+
+[[ $EUID -ne 0 ]] && _error "This script must be run as root"
+opsy=$(_os_full)
+arch=$(uname -m)
+lbit=$(getconf LONG_BIT)
+kern=$(uname -r)
+
+echo "---------- System Information ----------"
+echo " OS      : $opsy"
+echo " Arch    : $arch ($lbit Bit)"
+echo " Kernel  : $kern"
+echo "----------------------------------------"
+echo " Automatically enable TCP BBR script"
+echo
+echo " URL: https://teddysun.com/489.html"
+echo "----------------------------------------"
+echo
+
+install_bbr 2>&1 | tee /etc/xray/install_bbr.log
